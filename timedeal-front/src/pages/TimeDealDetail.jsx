@@ -145,7 +145,7 @@ const TimeDealDetail = () => {
   const isUpcoming = deal.status === 'UPCOMING';
 
   return (
-    <div className="min-h-screen bg-[#faf6f0]">
+    <div className="min-h-screen bg-[#faf6f0] flex flex-col">
       {/* 헤더 — 메인페이지와 동일 */}
       <header className="bg-[#faf6f0] border-b border-brand-100 relative z-10 isolate">
         <div className="container mx-auto px-4">
@@ -191,7 +191,7 @@ const TimeDealDetail = () => {
         </div>
       </header>
 
-      <main className="pb-28">
+      <main className="flex-1 pb-4">
         {/* 이미지 갤러리 */}
         <div className="bg-transparent">
           <div className="container mx-auto px-4 py-4 max-w-3xl">
@@ -328,7 +328,7 @@ const TimeDealDetail = () => {
       </main>
 
       {/* 하단 구매 바 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-brand-200 z-50">
+      <div className="sticky bottom-0 bg-white border-t border-brand-200 z-50">
         <div className="container mx-auto px-4 py-4 max-w-3xl">
 
           {/* 배송지 미등록 안내 배너 */}
@@ -468,9 +468,9 @@ export const PaymentModal = ({ deal, paymentMethod, setPaymentMethod, onClose, o
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white rounded-t-3xl animate-slide-up">
-        <div className="flex justify-center py-3"><div className="w-10 h-1 bg-brand-200 rounded-full" /></div>
-        <div className="px-6 pb-8">
+      <div className="relative w-full max-w-lg bg-white rounded-t-3xl animate-slide-up max-h-[90vh] flex flex-col">
+        <div className="flex justify-center py-3 flex-shrink-0"><div className="w-10 h-1 bg-brand-200 rounded-full" /></div>
+        <div className="px-6 pb-8 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-brand-800">결제수단 선택</h2>
             <button onClick={onClose} className="p-2 hover:bg-brand-100 rounded-xl">

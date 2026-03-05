@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getTimeDeals, createTimeDeal, updateTimeDeal, deleteTimeDeal } from '../api/timedeal';
 import { getCurrentUser, logout } from '../api/auth';
+import { USE_MOCK } from '../api/config';
 
 /* ── 상태 뱃지 색상 ── */
 const STATUS_STYLE = {
@@ -25,6 +26,7 @@ const EMPTY_FORM = {
   endTime: '',
   status: 'UPCOMING',
   images: [''],
+  features: '',
   description: '',
   tags: '',
 };
@@ -41,6 +43,7 @@ const AdminPage = () => {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // 삭제 확인 대상 id
+  const [previewDeal, setPreviewDeal] = useState(null); // 미리보기 대상
   const [toast, setToast] = useState(null); // { msg, type }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -84,6 +87,7 @@ const AdminPage = () => {
       endTime:       deal.endTime   ? deal.endTime.slice(0, 16)   : '',
       status:        deal.status || 'UPCOMING',
       images:        deal.images?.length ? deal.images : [''],
+      features:      deal.features?.join('\n') || '',
       description:   deal.description || '',
       tags:          deal.tags?.join(', ') || '',
     });
@@ -150,6 +154,7 @@ const AdminPage = () => {
       endTime:       new Date(form.endTime).toISOString(),
       status:        form.status,
       images:        form.images.filter(Boolean),
+      features:      form.features.split('\n').map(f => f.trim()).filter(Boolean),
       description:   form.description.trim(),
       tags:          form.tags.split(',').map(t => t.trim()).filter(Boolean),
     };
@@ -239,6 +244,9 @@ const AdminPage = () => {
           {toast.msg}
         </div>
       )}
+
+      {/* ── 미리보기 모달 ── */}
+      {previewDeal && <PreviewModal deal={previewDeal} onClose={() => setPreviewDeal(null)} />}
 
       {/* ── 삭제 확인 모달 ── */}
       {deleteConfirm && (
@@ -345,6 +353,7 @@ const AdminPage = () => {
                     deal={deal}
                     onEdit={() => openEdit(deal)}
                     onDelete={() => setDeleteConfirm(deal.id)}
+                    onPreview={() => setPreviewDeal(deal)}
                     discountRate={discountRate(deal.originalPrice, deal.discountPrice)}
                   />
                 ))}
@@ -396,17 +405,33 @@ const AdminPage = () => {
               </FormField>
             </div>
 
-            {/* 재고 */}
+            {/* 재고
+                [중요] 재고 수동 조정이 필요한 경우 RDS + Redis 둘 다 동시에 수정해야 함
+                  RDS:   UPDATE products SET stock = N, "initialStock" = N WHERE id = ?;
+                  Redis: redis-cli SET stock:{id} N
+                  Redis만 수정 시 → DB 불일치 (Redis 재건 시 꼬임)
+                  DB만 수정 시  → Redis 재고 그대로라 주문 안 들어옴
+            */}
             <div className="grid grid-cols-2 gap-4">
               <FormField label="현재 재고 *" error={errors.stock}>
                 <input name="stock" type="number" value={form.stock} onChange={handleField}
                   placeholder="100" className={inputCls(errors.stock)} />
               </FormField>
-              <FormField label="총 재고 *" error={errors.totalStock}>
+              <FormField label="총 재고 (initialStock) *" error={errors.totalStock}>
                 <input name="totalStock" type="number" value={form.totalStock} onChange={handleField}
                   placeholder="100" className={inputCls(errors.totalStock)} />
               </FormField>
             </div>
+            {USE_MOCK && (
+              <p className="text-xs text-blue-400 bg-blue-50 px-3 py-2 rounded-xl">
+                [Mock Mode!] 등록 시 현재 재고 = 총 재고로 자동 설정됩니다. 운영 중 재고 수동 조정은 RDS + Redis 동시 수정 필요.
+              </p>
+            )}
+            {Number(form.stock) > Number(form.totalStock) && form.stock && form.totalStock && (
+              <p className="text-xs text-amber-500 bg-amber-50 px-3 py-2 rounded-xl">
+                ⚠️ 현재 재고가 총 재고보다 많아요. 확인해주세요.
+              </p>
+            )}
 
             {/* 시간 */}
             <div className="grid grid-cols-2 gap-4">
@@ -419,6 +444,16 @@ const AdminPage = () => {
                   className={inputCls(errors.endTime)} />
               </FormField>
             </div>
+            {form.startTime && form.endTime && form.startTime >= form.endTime && (
+              <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl">
+                ⚠️ 종료 시간이 시작 시간보다 빠르거나 같아요.
+              </p>
+            )}
+            {form.startTime && form.endTime && form.startTime < form.endTime && new Date(form.startTime) < new Date() && (
+              <p className="text-xs text-amber-500 bg-amber-50 px-3 py-2 rounded-xl">
+                ⚠️ 시작 시간이 현재보다 과거예요. 의도한 설정인지 확인해주세요.
+              </p>
+            )}
 
             {/* 상태 */}
             <FormField label="딜 상태">
@@ -457,6 +492,13 @@ const AdminPage = () => {
                   </button>
                 )}
               </div>
+            </FormField>
+
+            {/* 특징 */}
+            <FormField label="상품 특징 (줄바꿈으로 구분)">
+              <textarea name="features" value={form.features} onChange={handleField}
+                rows={4} placeholder={"ex)\n100% 유기농 인증 원료만 사용\n수의사 10인 공동 설계\n인공 방부제·착색료 無"}
+                className="w-full px-4 py-3 rounded-2xl border border-brand-200 focus:outline-none focus:border-brand-500 text-brand-800 text-sm transition resize-none" />
             </FormField>
 
             {/* 태그 */}
@@ -499,7 +541,7 @@ const AdminPage = () => {
 /* ══════════════════════════════════════════════════════
    딜 목록 행 컴포넌트
 ══════════════════════════════════════════════════════ */
-const DealRow = ({ deal, onEdit, onDelete, discountRate }) => {
+const DealRow = ({ deal, onEdit, onDelete, onPreview, discountRate }) => {
   const name = deal.productName?.split('|')[0]?.trim() || deal.productName;
   const stockPct = deal.totalStock > 0
     ? Math.round((deal.stock / deal.totalStock) * 100)
@@ -533,6 +575,11 @@ const DealRow = ({ deal, onEdit, onDelete, discountRate }) => {
           </span>
           <span>재고 {deal.stock}/{deal.totalStock} ({stockPct}%)</span>
         </div>
+        <div className="flex items-center gap-1 mt-1 text-xs text-brand-300">
+          <span>🕐 {deal.startTime ? new Date(deal.startTime).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-'}</span>
+          <span>~</span>
+          <span>{deal.endTime ? new Date(deal.endTime).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-'}</span>
+        </div>
         {/* 재고 바 */}
         <div className="mt-1.5 h-1 bg-brand-100 rounded-full overflow-hidden w-full max-w-[200px]">
           <div
@@ -544,6 +591,10 @@ const DealRow = ({ deal, onEdit, onDelete, discountRate }) => {
 
       {/* 버튼 */}
       <div className="flex gap-2 flex-shrink-0">
+        <button onClick={onPreview}
+          className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-50 text-gray-500 hover:bg-gray-100 transition">
+          미리보기
+        </button>
         <button onClick={onEdit}
           className="px-3 py-2 rounded-xl text-xs font-semibold bg-brand-50 text-brand-600 hover:bg-brand-100 transition">
           수정
@@ -552,6 +603,103 @@ const DealRow = ({ deal, onEdit, onDelete, discountRate }) => {
           className="px-3 py-2 rounded-xl text-xs font-semibold bg-red-50 text-red-500 hover:bg-red-100 transition">
           삭제
         </button>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   미리보기 모달
+══════════════════════════════════════════════════════ */
+const PreviewModal = ({ deal, onClose }) => {
+  const [selectedImage, setSelectedImage] = useState(0);
+  const images = deal.images?.filter(Boolean).length ? deal.images.filter(Boolean) : [deal.productImage].filter(Boolean);
+  const discountRate = deal.originalPrice > 0 ? Math.round((1 - deal.discountPrice / deal.originalPrice) * 100) : 0;
+  const stockPct = deal.totalStock > 0 ? Math.round((deal.stock / deal.totalStock) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+      <div className="bg-[#faf6f0] rounded-3xl w-full max-w-sm max-h-[90vh] overflow-y-auto shadow-2xl">
+        {/* 모달 헤더 */}
+        <div className="sticky top-0 bg-white/90 backdrop-blur-sm flex items-center justify-between px-4 py-3 rounded-t-3xl border-b border-brand-100 z-10">
+          <span className="text-xs font-bold text-brand-500 bg-brand-50 px-2 py-1 rounded-lg">👁 고객 화면 미리보기</span>
+          <button onClick={onClose} className="p-1.5 hover:bg-brand-100 rounded-xl transition">
+            <svg className="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 이미지 갤러리 */}
+        <div className="px-4 pt-4">
+          <div className="relative bg-brand-100 rounded-2xl overflow-hidden mb-2">
+            <div className="flex transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(-${selectedImage * 100}%)` }}>
+              {images.map((img, idx) => (
+                <img key={idx} src={img} alt={`${deal.productName} ${idx + 1}`}
+                  className="w-full aspect-square object-cover flex-shrink-0" />
+              ))}
+            </div>
+            <div className="absolute top-3 left-3">
+              <span className="bg-brand-800 text-white px-3 py-1.5 rounded-xl font-bold text-sm shadow-lg">
+                {discountRate}% SALE
+              </span>
+            </div>
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, idx) => (
+                <button key={idx} onClick={() => setSelectedImage(idx)}
+                  className={`flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden border-2 transition-all ${
+                    selectedImage === idx ? 'border-brand-500' : 'border-transparent opacity-60'}`}>
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 상품 정보 */}
+        <div className="bg-white rounded-2xl mx-4 mt-3 p-4 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[deal.status] || 'bg-gray-100 text-gray-500'}`}>
+              {STATUS_LABEL[deal.status] || deal.status}
+            </span>
+          </div>
+          <h2 className="text-base font-bold text-brand-800 mb-3 leading-snug">{deal.productName}</h2>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-2xl font-bold text-brand-800">{deal.discountPrice?.toLocaleString()}<span className="text-sm font-medium text-brand-600">원</span></span>
+            <span className="text-sm text-brand-400 line-through">{deal.originalPrice?.toLocaleString()}원</span>
+          </div>
+          {/* 재고 바 */}
+          <div className="mb-1">
+            <div className="flex justify-between text-xs text-brand-500 mb-1">
+              <span>{deal.totalStock - deal.stock}명 구매</span>
+              <span>{stockPct}% 판매됨</span>
+            </div>
+            <div className="h-2 bg-brand-100 rounded-full overflow-hidden">
+              <div className="h-full bg-brand-400 rounded-full transition-all" style={{ width: `${stockPct}%` }} />
+            </div>
+          </div>
+          <div className="text-xs text-brand-400 mt-2">
+            🕐 {deal.startTime ? new Date(deal.startTime).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-'}
+            {' ~ '}
+            {deal.endTime ? new Date(deal.endTime).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '-'}
+          </div>
+        </div>
+
+        {/* 상품 특징 */}
+        {deal.features?.length > 0 && (
+          <div className="bg-white rounded-2xl mx-4 mt-3 p-4 shadow-sm">
+            <h3 className="font-bold text-brand-800 mb-3 text-sm">상품 정보</h3>
+            <div className="text-sm text-brand-600 space-y-1.5">
+              {deal.features.map((f, i) => <p key={i}>{f}</p>)}
+            </div>
+          </div>
+        )}
+
+        {/* 하단 여백 */}
+        <div className="h-4" />
       </div>
     </div>
   );

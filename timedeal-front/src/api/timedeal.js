@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { USE_MOCK, API_BASE_URL } from './config';
 import { mockTimeDeals } from '../mocks/timedeals';
+import { getAuthHeader } from './auth';
 
 // Mock 데이터를 런타임에 수정할 수 있도록 별도 배열로 관리
 let mockData = [...mockTimeDeals];
@@ -39,7 +40,7 @@ export const createTimeDeal = async (payload) => {
     return newDeal;
   }
 
-  const response = await axios.post(`${API_BASE_URL}/api/timedeals`, payload);
+  const response = await axios.post(`${API_BASE_URL}/api/timedeals`, payload, { headers: getAuthHeader() });
   return response.data;
 };
 
@@ -53,7 +54,7 @@ export const updateTimeDeal = async (id, payload) => {
     return mockData[idx];
   }
 
-  const response = await axios.put(`${API_BASE_URL}/api/timedeals/${id}`, payload);
+  const response = await axios.put(`${API_BASE_URL}/api/timedeals/${id}`, payload, { headers: getAuthHeader() });
   return response.data;
 };
 
@@ -67,7 +68,7 @@ export const deleteTimeDeal = async (id) => {
     return { success: true };
   }
 
-  const response = await axios.delete(`${API_BASE_URL}/api/timedeals/${id}`);
+  const response = await axios.delete(`${API_BASE_URL}/api/timedeals/${id}`, { headers: getAuthHeader() });
   return response.data;
 };
 

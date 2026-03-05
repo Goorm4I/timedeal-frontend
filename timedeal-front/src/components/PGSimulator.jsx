@@ -89,9 +89,9 @@ const PGSimulator = ({ deal, paymentMethod, onComplete, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-100">
+    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
       {/* 헤더 */}
-      <header className={`bg-gradient-to-r ${pg.color} text-white`}>
+      <header className={`bg-gradient-to-r ${pg.color} text-white flex-shrink-0`}>
         <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={onCancel}
@@ -110,13 +110,14 @@ const PGSimulator = ({ deal, paymentMethod, onComplete, onCancel }) => {
       </header>
 
       {/* Mock 안내 배너 */}
-      <div className="bg-amber-100 border-b border-amber-200 px-4 py-2">
+      <div className="bg-amber-100 border-b border-amber-200 px-4 py-2 flex-shrink-0">
         <p className="text-amber-800 text-xs text-center">
           🎓 <strong>포트폴리오 시연용 Mock 결제창</strong>입니다. 실제 결제가 진행되지 않습니다.
         </p>
       </div>
 
-      <div className="p-4 max-w-md mx-auto">
+      <div className="flex-1 overflow-y-auto">
+      <div className="p-4 max-w-md mx-auto pb-16">
         {/* Step 1: 결제 정보 확인 */}
         {step === 'info' && (
           <div className="space-y-4">
@@ -293,9 +294,10 @@ const PGSimulator = ({ deal, paymentMethod, onComplete, onCancel }) => {
           </div>
         )}
       </div>
+      </div>
 
       {/* 하단 안내 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-3">
+      <div className="flex-shrink-0 bg-white border-t px-4 py-3">
         <p className="text-xs text-gray-400 text-center">
           본 결제창은 포트폴리오 시연 목적으로 제작되었습니다.<br />
           실제 결제 시스템과 무관합니다.
