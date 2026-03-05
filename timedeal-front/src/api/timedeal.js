@@ -2,12 +2,15 @@ import axios from 'axios';
 import { USE_MOCK, API_BASE_URL } from './config';
 import { mockTimeDeals } from '../mocks/timedeals';
 
+// Mock 데이터를 런타임에 수정할 수 있도록 별도 배열로 관리
+let mockData = [...mockTimeDeals];
+let nextId = Math.max(...mockTimeDeals.map(d => d.id)) + 1;
+
 // 타임딜 목록 조회
 export const getTimeDeals = async () => {
   if (USE_MOCK) {
-    // Mock: 약간의 딜레이 추가
     await new Promise(resolve => setTimeout(resolve, 300));
-    return mockTimeDeals;
+    return [...mockData];
   }
 
   const response = await axios.get(`${API_BASE_URL}/api/timedeals`);
@@ -18,7 +21,7 @@ export const getTimeDeals = async () => {
 export const getTimeDeal = async (id) => {
   if (USE_MOCK) {
     await new Promise(resolve => setTimeout(resolve, 200));
-    const deal = mockTimeDeals.find(d => d.id === Number(id));
+    const deal = mockData.find(d => d.id === Number(id));
     if (!deal) throw new Error('타임딜을 찾을 수 없습니다.');
     return deal;
   }
@@ -27,4 +30,45 @@ export const getTimeDeal = async (id) => {
   return response.data;
 };
 
-export default { getTimeDeals, getTimeDeal };
+// 타임딜 등록
+export const createTimeDeal = async (payload) => {
+  if (USE_MOCK) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const newDeal = { ...payload, id: nextId++ };
+    mockData.push(newDeal);
+    return newDeal;
+  }
+
+  const response = await axios.post(`${API_BASE_URL}/api/timedeals`, payload);
+  return response.data;
+};
+
+// 타임딜 수정
+export const updateTimeDeal = async (id, payload) => {
+  if (USE_MOCK) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const idx = mockData.findIndex(d => d.id === Number(id));
+    if (idx === -1) throw new Error('타임딜을 찾을 수 없습니다.');
+    mockData[idx] = { ...mockData[idx], ...payload };
+    return mockData[idx];
+  }
+
+  const response = await axios.put(`${API_BASE_URL}/api/timedeals/${id}`, payload);
+  return response.data;
+};
+
+// 타임딜 삭제
+export const deleteTimeDeal = async (id) => {
+  if (USE_MOCK) {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const idx = mockData.findIndex(d => d.id === Number(id));
+    if (idx === -1) throw new Error('타임딜을 찾을 수 없습니다.');
+    mockData.splice(idx, 1);
+    return { success: true };
+  }
+
+  const response = await axios.delete(`${API_BASE_URL}/api/timedeals/${id}`);
+  return response.data;
+};
+
+export default { getTimeDeals, getTimeDeal, createTimeDeal, updateTimeDeal, deleteTimeDeal };

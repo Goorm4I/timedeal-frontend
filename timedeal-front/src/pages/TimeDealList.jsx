@@ -179,6 +179,14 @@ const TimeDealList = () => {
             <div className="flex items-center gap-1">
               {user ? (
                 <>
+                  {/* 관리자 버튼 */}
+                  {user.email === 'admin@test.com' && (
+                    <Link to="/admin"
+                      className="px-3 py-1.5 text-xs font-bold bg-brand-800 text-white rounded-full hover:bg-brand-700 transition mr-1"
+                      title="관리자 콘솔">
+                      👑 관리자
+                    </Link>
+                  )}
                   <Link to="/wishlist"
                     className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-brand-100 transition"
                     title="찜목록">

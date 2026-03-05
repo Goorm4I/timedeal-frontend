@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { getCurrentUser } from './api/auth';
 import TimeDealList from './pages/TimeDealList';
 import TimeDealDetail from './pages/TimeDealDetail';
 import OrderResult from './pages/OrderResult';
@@ -11,6 +12,8 @@ import Register from './pages/Register';
 import WishList from './pages/WishList';
 import AddressManager from './pages/AddressManager';
 import MyPage from './pages/MyPage';
+import AdminPage from './pages/AdminPage';
+import AdminRoute from './components/AdminRoute';
 
 function App() {
   return (
@@ -20,12 +23,21 @@ function App() {
           <Route path="/" element={<TimeDealList />} />
           <Route path="/deal/:id" element={<TimeDealDetail />} />
           <Route path="/order/:id" element={<OrderResult />} />
-          <Route path="/monitor" element={<EventMonitor />} />
+          <Route path="/monitor" element={
+            <AdminRoute>
+              <EventMonitor />
+            </AdminRoute>
+          } />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/wishlist" element={<WishList />} />
           <Route path="/address" element={<AddressManager />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/admin" element={
+            <AdminRoute>
+              <AdminPage />
+            </AdminRoute>
+          } />
         </Routes>
         <MonitorButton />
       </div>
@@ -35,9 +47,11 @@ function App() {
 
 const MonitorButton = () => {
   const location = useLocation();
-  const hiddenPaths = ['/monitor', '/login', '/register', '/wishlist', '/address', '/mypage'];
+  const user = getCurrentUser();
+  const isAdmin = user?.email === 'admin@test.com';
+  const hiddenPaths = ['/monitor', '/login', '/register', '/wishlist', '/address', '/mypage', '/admin'];
   const isDetailPage = location.pathname.startsWith('/deal/');
-  if (hiddenPaths.includes(location.pathname) || isDetailPage) return null;
+  if (!isAdmin || hiddenPaths.includes(location.pathname) || isDetailPage) return null;
   return (
     <Link
       to="/monitor"
