@@ -220,7 +220,7 @@ const AdminPage = () => {
               <span className="text-sm font-bold text-brand-700">관리자 콘솔</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-brand-500 hidden sm:block">👑 {user?.name}</span>
+              <span className="text-sm text-brand-500 hidden sm:block">👑 {user?.email}</span>
               <button
                 onClick={() => { logout(); navigate('/'); }}
                 className="text-xs text-brand-400 hover:text-brand-600 transition px-3 py-1.5 rounded-lg hover:bg-brand-100"
