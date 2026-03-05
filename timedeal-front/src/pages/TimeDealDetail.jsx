@@ -254,20 +254,22 @@ const TimeDealDetail = () => {
 
         {/* 상품 정보 */}
         <div className="bg-white rounded-2xl mt-4 p-6 max-w-3xl mx-auto shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            {deal.status === 'ACTIVE' ? (
-              <span className="badge bg-brand-500 text-white">
-                <span className="inline-block w-1.5 h-1.5 bg-white rounded-full mr-1.5 animate-pulse"></span>
-                LIVE
-              </span>
-            ) : isUpcoming ? (
-              <span className="badge bg-brand-300 text-brand-800">오픈예정</span>
-            ) : (
-              <span className="badge bg-brand-200 text-brand-600">종료</span>
-            )}
-            {!isUpcoming && deal.stock <= 10 && deal.stock > 0 && (
-              <span className="badge bg-brand-500/10 text-brand-500">{deal.stock}개 남음</span>
-            )}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              {deal.status === 'ACTIVE' ? (
+                <span className="badge bg-brand-500 text-white">
+                  <span className="inline-block w-1.5 h-1.5 bg-white rounded-full mr-1.5 animate-pulse"></span>
+                  LIVE
+                </span>
+              ) : isUpcoming ? (
+                <span className="badge bg-brand-300 text-brand-800">오픈예정</span>
+              ) : (
+                <span className="badge bg-brand-200 text-brand-600">종료</span>
+              )}
+              {!isUpcoming && deal.stock <= 10 && deal.stock > 0 && (
+                <span className="badge bg-brand-500/10 text-brand-500">{deal.stock}개 남음</span>
+              )}
+            </div>
           </div>
 
           <h2 className="text-xl font-bold text-brand-800 mb-4 leading-snug">{deal.productName}</h2>
