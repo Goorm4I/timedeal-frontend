@@ -4,7 +4,7 @@ import { login } from '../api/auth';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ id: '', password: '', remember: false });
+  const [form, setForm] = useState({ email: '', password: '', remember: false });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -15,8 +15,8 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.id || !form.password) {
-      setError('아이디와 비밀번호를 입력해주세요.');
+    if (!form.email || !form.password) {
+      setError('이메일과 비밀번호를 입력해주세요.');
       return;
     }
     try {
@@ -57,13 +57,13 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-brand-700 mb-1.5">아이디</label>
+              <label className="block text-sm font-medium text-brand-700 mb-1.5">이메일</label>
               <input
-                type="text"
-                name="id"
-                value={form.id}
+                type="email"
+                name="email"
+                value={form.email}
                 onChange={handleChange}
-                placeholder="아이디를 입력하세요"
+                placeholder="이메일을 입력하세요"
                 className="w-full px-4 py-3 rounded-2xl border border-brand-200 focus:outline-none focus:border-brand-500 text-brand-800 placeholder-brand-300 transition"
               />
             </div>

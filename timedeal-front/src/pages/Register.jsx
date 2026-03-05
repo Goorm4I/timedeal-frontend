@@ -5,7 +5,7 @@ import { register } from '../api/auth';
 const Register = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    id: '', password: '', passwordConfirm: '', name: '', phone: '',
+    email: '', password: '', passwordConfirm: '', name: '', phone: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ const Register = () => {
     let { name, value } = e.target;
     if (name === 'phone') {
       value = value.replace(/[^0-9]/g, '');
-      if (value.length <= 3) value = value;
+      if (value.length <= 3) { /* 그대로 */ }
       else if (value.length <= 7) value = `${value.slice(0,3)}-${value.slice(3)}`;
       else value = `${value.slice(0,3)}-${value.slice(3,7)}-${value.slice(7,11)}`;
     }
@@ -24,8 +24,8 @@ const Register = () => {
 
   const validate = () => {
     const newErrors = {};
-    if (!form.id) newErrors.id = '아이디를 입력해주세요.';
-    else if (form.id.length < 4) newErrors.id = '아이디는 4자 이상이어야 해요.';
+    if (!form.email) newErrors.email = '이메일을 입력해주세요.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) newErrors.email = '올바른 이메일 형식으로 입력해주세요.';
     if (!form.password) newErrors.password = '비밀번호를 입력해주세요.';
     else if (form.password.length < 6) newErrors.password = '비밀번호는 6자 이상이어야 해요.';
     if (!form.passwordConfirm) newErrors.passwordConfirm = '비밀번호 확인을 입력해주세요.';
@@ -46,14 +46,14 @@ const Register = () => {
       await register(form);
       navigate('/');
     } catch (err) {
-      setErrors({ id: err.message });
+      setErrors({ email: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   const fields = [
-    { name: 'id', label: '아이디', type: 'text', placeholder: '4자 이상 입력하세요' },
+    { name: 'email', label: '이메일', type: 'email', placeholder: 'example@email.com' },
     { name: 'password', label: '비밀번호', type: 'password', placeholder: '6자 이상 입력하세요' },
     { name: 'passwordConfirm', label: '비밀번호 확인', type: 'password', placeholder: '비밀번호를 다시 입력하세요' },
     { name: 'name', label: '이름', type: 'text', placeholder: '실명을 입력하세요' },
