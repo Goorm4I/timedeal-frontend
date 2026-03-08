@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { getCurrentUser, getAddress, saveAddress, logout } from '../api/auth';
+import { getCurrentUser, logout } from '../api/auth';
+import { getAddresses, createAddress, updateAddress } from '../api/address';
 
 /* ── 결제 비밀번호는 localStorage에 유저별 저장 ── */
 const getPayPw = (userId) => localStorage.getItem(`paypw_${userId}`) || null;
@@ -139,12 +140,25 @@ const MenuItem = ({ icon, label, isOpen, onToggle, children }) => (
 
 /* ── 1. 배송지 관리 ── */
 const AddressSection = ({ user }) => {
-  const existing = getAddress();
-  const [form, setForm] = useState(existing || { zipcode: '', address: '', addressDetail: '' });
+  const [existing, setExisting] = useState(null);
+  const [form, setForm] = useState({ zipcode: '', address: '', addressDetail: '' });
   const [errors, setErrors] = useState({});
   const [saved, setSaved] = useState(false);
 
+  // API로 배송지 목록 불러오기
   useEffect(() => {
+    getAddresses().then(list => {
+      const defaultAddr = list.find(a => a.isDefault) || list[0];
+      if (defaultAddr) {
+        setExisting(defaultAddr);
+        setForm({
+          zipcode: defaultAddr.zipCode,
+          address: defaultAddr.baseAddress,
+          addressDetail: defaultAddr.detailAddress || '',
+        });
+      }
+    }).catch(() => {});
+
     if (!document.getElementById('kakao-postcode-script')) {
       const script = document.createElement('script');
       script.id = 'kakao-postcode-script';
@@ -165,14 +179,32 @@ const AddressSection = ({ user }) => {
     }).open();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const newErrors = {};
     if (!form.zipcode || !form.address) newErrors.address = '주소 검색을 해주세요.';
     if (!form.addressDetail) newErrors.addressDetail = '상세주소를 입력해주세요.';
     if (Object.keys(newErrors).length) { setErrors(newErrors); return; }
-    saveAddress(form);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+
+    const payload = {
+      recipientName: user.name,
+      phoneNumber: user.phone || '',
+      zipCode: form.zipcode,
+      baseAddress: form.address,
+      detailAddress: form.addressDetail,
+      isDefault: true,
+    };
+
+    try {
+      if (existing) {
+        await updateAddress(existing.id, payload);
+      } else {
+        await createAddress(payload);
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      setErrors({ addressDetail: '저장에 실패했어요. 다시 시도해주세요.' });
+    }
   };
 
   return (
@@ -180,8 +212,8 @@ const AddressSection = ({ user }) => {
       {existing && (
         <div className="text-sm text-brand-600 bg-white rounded-xl p-3 border border-brand-100">
           <p className="font-medium text-brand-800">현재 배송지</p>
-          <p className="mt-1">({existing.zipcode}) {existing.address}</p>
-          <p className="text-brand-500">{existing.addressDetail}</p>
+          <p className="mt-1">({existing.zipCode}) {existing.baseAddress}</p>
+          <p className="text-brand-500">{existing.detailAddress}</p>
         </div>
       )}
       <div className="flex gap-2">
@@ -225,7 +257,6 @@ const PhoneSection = ({ user }) => {
       setError('올바른 전화번호 형식으로 입력해주세요. (예: 010-1234-5678)');
       return;
     }
-    // 세션/로컬스토리지 업데이트
     const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
     const updated = { ...JSON.parse(storage.getItem('user')), phone };
     storage.setItem('user', JSON.stringify(updated));
@@ -297,7 +328,7 @@ const PaymentSection = ({ user }) => {
 /* ── 4. 결제 비밀번호 ── */
 const PayPasswordSection = ({ user }) => {
   const hasExisting = !!getPayPw(user.id);
-  const [step, setStep] = useState(hasExisting ? 'verify' : 'new'); // verify | new | confirm
+  const [step, setStep] = useState(hasExisting ? 'verify' : 'new');
   const [input, setInput] = useState('');
   const [newPw, setNewPw] = useState('');
   const [error, setError] = useState('');

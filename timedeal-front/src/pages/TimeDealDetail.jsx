@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getTimeDeal, getTimeDeals } from '../api/timedeal';
 import { createOrder, getOrder } from '../api/order';
-import { getCurrentUser, getAddress } from '../api/auth';
+import { getCurrentUser } from '../api/auth';
+import { getAddresses } from '../api/address';
 import CountdownTimer from '../components/CountdownTimer';
 import StockProgress from '../components/StockProgress';
 import PGSimulator from '../components/PGSimulator';
@@ -28,9 +29,15 @@ const TimeDealDetail = () => {
 
   // 배송지 미등록 안내 배너
   const user = getCurrentUser();
-  const [showAddressBanner, setShowAddressBanner] = useState(
-    () => !!user && !getAddress()
-  );
+  const [showAddressBanner, setShowAddressBanner] = useState(false);
+
+  // 배송지 등록 여부 API로 확인
+  useEffect(() => {
+    if (!user) return;
+    getAddresses().then(list => {
+      if (!list || list.length === 0) setShowAddressBanner(true);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -67,7 +74,6 @@ const TimeDealDetail = () => {
     } catch {}
   };
 
-  // ACTIVE → ENDED
   const handleDealExpire = useCallback(() => {
     setDeal(prev => {
       if (!prev || prev.status !== 'ACTIVE') return prev;
@@ -75,7 +81,6 @@ const TimeDealDetail = () => {
     });
   }, []);
 
-  // ✅ UPCOMING → ACTIVE: 오픈 예정 딜 시작 시간 도달 시 즉시 전환
   const handleDealStart = useCallback(() => {
     setDeal(prev => {
       if (!prev || prev.status !== 'UPCOMING') return prev;
@@ -85,7 +90,6 @@ const TimeDealDetail = () => {
 
   const handlePurchaseClick = async () => {
     if (!getCurrentUser()) { navigate('/login'); return; }
-    // 로컬 state가 ACTIVE인 경우 (UPCOMING → ACTIVE 전환 포함) re-fetch 없이 바로 진행
     if (deal.status === 'ACTIVE' && deal.stock > 0) {
       setShowPayment(true);
       return;
@@ -146,15 +150,13 @@ const TimeDealDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#faf6f0] flex flex-col">
-      {/* 헤더 — 메인페이지와 동일 */}
+      {/* 헤더 */}
       <header className="bg-[#faf6f0] border-b border-brand-100 relative z-10 isolate">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            {/* 로고 */}
             <Link to="/" className="flex items-center hover:opacity-75 transition">
               <img src="/icon1.png" alt="뽀시래기" className="h-10 object-contain" />
             </Link>
-            {/* 우측 버튼 */}
             <div className="flex items-center gap-1">
               {user ? (
                 <>
@@ -196,7 +198,6 @@ const TimeDealDetail = () => {
         <div className="bg-transparent">
           <div className="container mx-auto px-4 py-4 max-w-3xl">
             <div className="relative bg-brand-100 rounded-2xl overflow-hidden mb-3">
-              {/* 모든 이미지를 미리 렌더링, translateX로 전환 → src 변경 없이 부드럽게 슬라이드 */}
               <div
                 className="flex transition-transform duration-300 ease-in-out"
                 style={{ transform: `translateX(-${selectedImage * 100}%)` }}

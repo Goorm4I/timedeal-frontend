@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { getCurrentUser, getAddress } from '../api/auth';
+import React, { useState, useEffect } from 'react';
+import { getCurrentUser } from '../api/auth';
+import { getAddresses } from '../api/address';
 
 /* ─────────────────────────────────────────────────────────────────
    Mock PG 결제 시뮬레이터
@@ -11,10 +12,18 @@ import { getCurrentUser, getAddress } from '../api/auth';
 const PGSimulator = ({ deal, paymentMethod, onComplete, onCancel }) => {
   const [step, setStep] = useState('info'); // info, auth, processing, done
   const [progress, setProgress] = useState(0);
+  const [address, setAddress] = useState(null);
 
-  // 현재 로그인 유저 정보 (이름/전화번호/주소)
+  // 현재 로그인 유저 정보
   const user = getCurrentUser();
-  const address = getAddress();
+
+  // API로 배송지 불러오기
+  useEffect(() => {
+    getAddresses().then(list => {
+      const defaultAddr = list.find(a => a.isDefault) || list[0];
+      if (defaultAddr) setAddress(defaultAddr);
+    }).catch(() => {});
+  }, []);
 
   // PG 스타일
   const pgStyles = {
@@ -147,13 +156,13 @@ const PGSimulator = ({ deal, paymentMethod, onComplete, onCancel }) => {
               <div className="bg-white rounded-2xl p-4 shadow-sm">
                 <p className="text-sm text-gray-500 mb-2">📦 배송지</p>
                 <p className="text-sm font-medium text-gray-800">
-                  {user?.name} · {user?.phone}
+                  {address.recipientName} · {address.phoneNumber}
                 </p>
                 <p className="text-sm text-gray-600 mt-1">
-                  ({address.zipcode}) {address.address}
+                  ({address.zipCode}) {address.baseAddress}
                 </p>
-                {address.addressDetail && (
-                  <p className="text-sm text-gray-600">{address.addressDetail}</p>
+                {address.detailAddress && (
+                  <p className="text-sm text-gray-600">{address.detailAddress}</p>
                 )}
               </div>
             ) : (

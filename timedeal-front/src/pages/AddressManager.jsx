@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser, getAddress, saveAddress } from '../api/auth';
+import { getCurrentUser } from '../api/auth';
+import { getAddresses, createAddress, updateAddress } from '../api/address';
 
 const AddressManager = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
+  const [existingAddress, setExistingAddress] = useState(null);
   const [form, setForm] = useState({ zipcode: '', address: '', addressDetail: '' });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // 기존 배송지 불러오기
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    const existing = getAddress();
-    if (existing) setForm(existing);
+
+    // API로 배송지 불러오기
+    getAddresses().then(list => {
+      const defaultAddr = list.find(a => a.isDefault) || list[0];
+      if (defaultAddr) {
+        setExistingAddress(defaultAddr);
+        setForm({
+          zipcode: defaultAddr.zipCode,
+          address: defaultAddr.baseAddress,
+          addressDetail: defaultAddr.detailAddress || '',
+        });
+      }
+    }).catch(() => {});
 
     // 카카오 주소 API 스크립트 동적 로드
     if (!document.getElementById('kakao-postcode-script')) {
@@ -49,17 +61,31 @@ const AddressManager = () => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+
+    const payload = {
+      recipientName: user.name,
+      phoneNumber: user.phone || '',
+      zipCode: form.zipcode,
+      baseAddress: form.address,
+      detailAddress: form.addressDetail,
+      isDefault: true,
+    };
+
     try {
       setLoading(true);
-      saveAddress(form);
+      if (existingAddress) {
+        await updateAddress(existingAddress.id, payload);
+      } else {
+        await createAddress(payload);
+      }
       setSaved(true);
       setTimeout(() => navigate(-1), 1200);
+    } catch (e) {
+      setErrors({ addressDetail: '저장에 실패했어요. 다시 시도해주세요.' });
     } finally {
       setLoading(false);
     }
   };
-
-  const hasAddress = getAddress();
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -87,27 +113,26 @@ const AddressManager = () => {
         )}
 
         {/* 현재 배송지 표시 */}
-        {hasAddress && (
+        {existingAddress && (
           <div className="bg-white rounded-2xl p-5 mb-4 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-brand-500">📦</span>
               <p className="text-sm font-semibold text-brand-700">현재 등록된 배송지</p>
             </div>
             <p className="text-sm text-brand-800">
-              ({hasAddress.zipcode}) {hasAddress.address}
+              ({existingAddress.zipCode}) {existingAddress.baseAddress}
             </p>
-            <p className="text-sm text-brand-600 mt-0.5">{hasAddress.addressDetail}</p>
+            <p className="text-sm text-brand-600 mt-0.5">{existingAddress.detailAddress}</p>
           </div>
         )}
 
         {/* 배송지 입력 폼 */}
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h2 className="text-base font-bold text-brand-800 mb-5">
-            {hasAddress ? '배송지 변경' : '기본 배송지 등록'}
+            {existingAddress ? '배송지 변경' : '기본 배송지 등록'}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 우편번호 + 검색 버튼 */}
             <div>
               <label className="block text-sm font-medium text-brand-700 mb-1.5">주소</label>
               <div className="flex gap-2 mb-2">
@@ -126,7 +151,6 @@ const AddressManager = () => {
                   🔍 주소 검색
                 </button>
               </div>
-              {/* 도로명 주소 자동 입력 */}
               <input
                 readOnly
                 value={form.address}
@@ -136,7 +160,6 @@ const AddressManager = () => {
               {errors.address && <p className="mt-1.5 text-xs text-red-500">{errors.address}</p>}
             </div>
 
-            {/* 상세주소 */}
             <div>
               <label className="block text-sm font-medium text-brand-700 mb-1.5">상세주소</label>
               <input

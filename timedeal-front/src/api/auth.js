@@ -49,27 +49,6 @@ export const register = async ({ email, password, name, phone }) => {
   return response.data.data;
 };
 
-// 배송지 저장 (localStorage에 유저별로 저장)
-export const saveAddress = ({ zipcode, address, addressDetail }) => {
-  const user = getCurrentUser();
-  if (!user) return;
-  const addressData = { zipcode, address, addressDetail };
-  localStorage.setItem(`address_${user.id}`, JSON.stringify(addressData));
-  // 현재 유저 세션에도 반영
-  const storage = localStorage.getItem('user') ? localStorage : sessionStorage;
-  const updated = { ...user, zipcode, address, addressDetail };
-  storage.setItem('user', JSON.stringify(updated));
-  return addressData;
-};
-
-// 배송지 조회
-export const getAddress = () => {
-  const user = getCurrentUser();
-  if (!user) return null;
-  const data = localStorage.getItem(`address_${user.id}`);
-  return data ? JSON.parse(data) : null;
-};
-
 // 로그아웃
 export const logout = async () => {
   const refreshToken = localStorage.getItem('refreshToken');
@@ -98,4 +77,4 @@ export const getCurrentUser = () => {
   return data ? JSON.parse(data) : null;
 };
 
-export default { login, register, logout, getCurrentUser, saveAddress, getAddress };
+export default { login, register, logout, getCurrentUser, getAuthHeader };
