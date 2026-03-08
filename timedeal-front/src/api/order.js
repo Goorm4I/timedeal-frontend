@@ -25,7 +25,7 @@ export const createOrder = async (timedealId, quantity = 1) => {
     return { orderId: order.orderId, status: order.status };
   }
 
-  const response = await axios.post(`${API_BASE_URL}/api/orders`, {
+  const response = await axios.post(`${API_BASE_URL}/orders`, {
     timedealId,
     quantity
   });
@@ -43,7 +43,7 @@ export const getOrder = async (orderId) => {
     return order;
   }
 
-  const response = await axios.get(`${API_BASE_URL}/api/orders/${orderId}`);
+  const response = await axios.get(`${API_BASE_URL}/orders/${orderId}`);
   return response.data;
 };
 

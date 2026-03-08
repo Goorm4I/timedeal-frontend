@@ -14,8 +14,12 @@ export const getTimeDeals = async () => {
     return [...mockData];
   }
 
-  const response = await axios.get(`${API_BASE_URL}/api/timedeals`);
-  return response.data;
+  const response = await axios.get(`${API_BASE_URL}/time-deals`);
+  // 백엔드 응답 구조: { status, success, data: [...], error }
+  // response.data 는 ApiResponse 객체 전체이므로
+  // 실제 배열은 response.data.data 에 있음
+  // ?? [] 는 data가 null/undefined일 때 빈 배열 반환 (deals.filter 오류 방지)
+  return response.data.data ?? [];
 };
 
 // 타임딜 상세 조회
@@ -27,8 +31,9 @@ export const getTimeDeal = async (id) => {
     return deal;
   }
 
-  const response = await axios.get(`${API_BASE_URL}/api/timedeals/${id}`);
-  return response.data;
+  const response = await axios.get(`${API_BASE_URL}/time-deals/${id}`);
+  // 목록과 동일하게 ApiResponse 래퍼에서 실제 딜 객체 꺼냄
+  return response.data.data;
 };
 
 // 타임딜 등록
@@ -40,7 +45,7 @@ export const createTimeDeal = async (payload) => {
     return newDeal;
   }
 
-  const response = await axios.post(`${API_BASE_URL}/api/timedeals`, payload, { headers: getAuthHeader() });
+  const response = await axios.post(`${API_BASE_URL}/time-deals`, payload, { headers: getAuthHeader() });
   return response.data;
 };
 
@@ -54,7 +59,7 @@ export const updateTimeDeal = async (id, payload) => {
     return mockData[idx];
   }
 
-  const response = await axios.put(`${API_BASE_URL}/api/timedeals/${id}`, payload, { headers: getAuthHeader() });
+  const response = await axios.put(`${API_BASE_URL}/time-deals/${id}`, payload, { headers: getAuthHeader() });
   return response.data;
 };
 
@@ -68,7 +73,7 @@ export const deleteTimeDeal = async (id) => {
     return { success: true };
   }
 
-  const response = await axios.delete(`${API_BASE_URL}/api/timedeals/${id}`, { headers: getAuthHeader() });
+  const response = await axios.delete(`${API_BASE_URL}/time-deals/${id}`, { headers: getAuthHeader() });
   return response.data;
 };
 

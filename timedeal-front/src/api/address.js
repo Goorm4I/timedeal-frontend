@@ -23,7 +23,7 @@ export const getAddresses = async () => {
   }
 
   const response = await axios.get(
-    `${API_BASE_URL}/api/v1/users/me/addresses`,
+    `${API_BASE_URL}/users/me/addresses`,
     authHeaders()
   );
   return response.data.data;
@@ -62,7 +62,7 @@ export const createAddress = async ({
   }
 
   const response = await axios.post(
-    `${API_BASE_URL}/api/v1/users/me/addresses`,
+    `${API_BASE_URL}/users/me/addresses`,
     { recipientName, phoneNumber, secondaryPhoneNumber, zipCode, baseAddress, detailAddress, requestMessage, isDefault },
     authHeaders()
   );
@@ -83,7 +83,7 @@ export const updateAddress = async (addressId, payload) => {
   }
 
   const response = await axios.put(
-    `${API_BASE_URL}/api/v1/users/me/addresses/${addressId}`,
+    `${API_BASE_URL}/users/me/addresses/${addressId}`,
     payload,
     authHeaders()
   );
@@ -101,7 +101,7 @@ export const deleteAddress = async (addressId) => {
   }
 
   const response = await axios.delete(
-    `${API_BASE_URL}/api/v1/users/me/addresses/${addressId}`,
+    `${API_BASE_URL}/users/me/addresses/${addressId}`,
     authHeaders()
   );
   return response.data;

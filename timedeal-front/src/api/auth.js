@@ -21,7 +21,7 @@ export const login = async ({ email, password, remember }) => {
     return userData;
   }
 
-  const response = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, { email, password });
+  const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
   const { accessToken, refreshToken } = response.data.data;
   localStorage.setItem('accessToken', accessToken);
   localStorage.setItem('refreshToken', refreshToken);
@@ -43,7 +43,7 @@ export const register = async ({ email, password, name, phone }) => {
     return userData;
   }
 
-  const response = await axios.post(`${API_BASE_URL}/api/v1/users`, { email, password, name, phoneNumber: phone });
+  const response = await axios.post(`${API_BASE_URL}/users`, { email, password, name, phoneNumber: phone });
   const userData = { email, name };
   sessionStorage.setItem('user', JSON.stringify(userData));
   return response.data.data;
@@ -54,7 +54,7 @@ export const logout = async () => {
   const refreshToken = localStorage.getItem('refreshToken');
   if (!USE_MOCK && refreshToken) {
     try {
-      await axios.post(`${API_BASE_URL}/api/v1/auth/logout`, { refreshToken },
+      await axios.post(`${API_BASE_URL}/auth/logout`, { refreshToken },
         { headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` } }
       );
     } catch (_) {}
