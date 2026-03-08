@@ -28,10 +28,18 @@ const TimeDealCard = ({ deal, onWishChange, onDealExpire }) => {
     if (!isLoggedIn) setLiked(false);
   }, [isLoggedIn]);
 
-  const {
-    id, productName, productImage, originalPrice, discountPrice,
-    discountRate, stock, totalStock, startTime, endTime, status
-  } = deal;
+  const { id, startTime, endTime, status, product, totalQuantity, remainingQuantity } = deal;
+
+  // 백엔드 응답 구조에 맞게 필드 매핑
+  const productName = product?.name ?? '';
+  const productImage = product?.thumbnailUrl ?? '';
+  const originalPrice = Number(product?.originPrice ?? 0);
+  const discountPrice = Number(product?.salePrice ?? 0);
+  const discountRate = originalPrice > 0
+    ? Math.round((1 - discountPrice / originalPrice) * 100)
+    : 0;
+  const totalStock = totalQuantity ?? 0;
+  const stock = remainingQuantity ?? totalStock;
 
   const getStatusConfig = () => {
     switch (status) {
@@ -43,7 +51,7 @@ const TimeDealCard = ({ deal, onWishChange, onDealExpire }) => {
   };
 
   const config = getStatusConfig();
-  const isHot = status === 'ACTIVE' && (totalStock - stock) / totalStock >= 0.5;
+  const isHot = status === 'ACTIVE' && totalStock > 0 && (totalStock - stock) / totalStock >= 0.5;
   const isEnded = status === 'SOLDOUT' || status === 'ENDED';
 
   const handleClick = () => {
@@ -108,7 +116,6 @@ const TimeDealCard = ({ deal, onWishChange, onDealExpire }) => {
       <div className="p-5">
         <h3 className="font-semibold text-brand-800 mb-3 line-clamp-2 leading-snug">{productName}</h3>
 
-        {/* ✅ 가격 영역: 줄바꿈 방지 — 가격+원가 한 줄, SALE% 별도 줄 */}
         <div className="mb-4">
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-bold text-brand-800 whitespace-nowrap">

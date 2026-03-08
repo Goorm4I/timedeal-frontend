@@ -27,11 +27,9 @@ const TimeDealDetail = () => {
   const [checkingStock, setCheckingStock] = useState(false);
   const [stockError, setStockError] = useState(null);
 
-  // 배송지 미등록 안내 배너
   const user = getCurrentUser();
   const [showAddressBanner, setShowAddressBanner] = useState(false);
 
-  // 배송지 등록 여부 API로 확인
   useEffect(() => {
     if (!user) return;
     getAddresses().then(list => {
@@ -77,7 +75,7 @@ const TimeDealDetail = () => {
   const handleDealExpire = useCallback(() => {
     setDeal(prev => {
       if (!prev || prev.status !== 'ACTIVE') return prev;
-      return { ...prev, status: 'ENDED', stock: 0 };
+      return { ...prev, status: 'ENDED', remainingQuantity: 0 };
     });
   }, []);
 
@@ -90,7 +88,7 @@ const TimeDealDetail = () => {
 
   const handlePurchaseClick = async () => {
     if (!getCurrentUser()) { navigate('/login'); return; }
-    if (deal.status === 'ACTIVE' && deal.stock > 0) {
+    if (deal.status === 'ACTIVE' && remainingQuantity > 0) {
       setShowPayment(true);
       return;
     }
@@ -99,7 +97,8 @@ const TimeDealDetail = () => {
     try {
       const latestDeal = await getTimeDeal(id);
       setDeal(latestDeal);
-      if (latestDeal.stock <= 0) { setStockError('앗! 방금 품절되었어요 😢'); return; }
+      const latestRemaining = latestDeal.remainingQuantity ?? latestDeal.totalQuantity ?? 0;
+      if (latestRemaining <= 0) { setStockError('앗! 방금 품절되었어요 😢'); return; }
       if (latestDeal.status !== 'ACTIVE') { setStockError('타임딜이 종료되었어요'); return; }
       setShowPayment(true);
     } catch {
@@ -142,10 +141,20 @@ const TimeDealDetail = () => {
 
   if (loading) return <LoadingScreen />;
   if (error) return <ErrorScreen error={error} onRetry={() => navigate('/')} />;
+  if (!deal) return <LoadingScreen />;
   if (processing) return <ProcessingScreen step={processingStep} deal={deal} />;
 
-  const images = deal.images || [deal.productImage];
-  const canPurchase = deal.status === 'ACTIVE' && deal.stock > 0;
+  // 백엔드 응답 구조에 맞게 필드 매핑
+  const productName = deal.product?.name ?? '';
+  const productImage = deal.product?.thumbnailUrl ?? '';
+  const originalPrice = Number(deal.product?.originPrice ?? 0);
+  const discountPrice = Number(deal.product?.salePrice ?? 0);
+  const discountRate = originalPrice > 0 ? Math.round((1 - discountPrice / originalPrice) * 100) : 0;
+  const totalStock = deal.totalQuantity ?? 0;
+  const remainingQuantity = deal.remainingQuantity ?? totalStock;
+
+  const images = deal.product?.images?.map(img => img.imageUrl) || [productImage];
+  const canPurchase = deal.status === 'ACTIVE' && remainingQuantity > 0;
   const isUpcoming = deal.status === 'UPCOMING';
 
   return (
@@ -206,14 +215,14 @@ const TimeDealDetail = () => {
                   <img
                     key={idx}
                     src={img}
-                    alt={`${deal.productName} ${idx + 1}`}
+                    alt={`${productName} ${idx + 1}`}
                     className="w-full aspect-square object-cover max-h-96 flex-shrink-0"
                   />
                 ))}
               </div>
               <div className="absolute top-4 left-4">
                 <span className="bg-brand-800 text-white px-4 py-2 rounded-xl font-bold text-lg shadow-lg">
-                  {deal.discountRate}% SALE
+                  {discountRate}% SALE
                 </span>
               </div>
               {deal.status === 'ACTIVE' && (
@@ -267,20 +276,20 @@ const TimeDealDetail = () => {
               ) : (
                 <span className="badge bg-brand-200 text-brand-600">종료</span>
               )}
-              {!isUpcoming && deal.stock <= 10 && deal.stock > 0 && (
-                <span className="badge bg-brand-500/10 text-brand-500">{deal.stock}개 남음</span>
+              {!isUpcoming && remainingQuantity <= 10 && remainingQuantity > 0 && (
+                <span className="badge bg-brand-500/10 text-brand-500">{remainingQuantity}개 남음</span>
               )}
             </div>
           </div>
 
-          <h2 className="text-xl font-bold text-brand-800 mb-4 leading-snug">{deal.productName}</h2>
+          <h2 className="text-xl font-bold text-brand-800 mb-4 leading-snug">{productName}</h2>
 
           <div className="flex items-baseline gap-3 mb-4">
             <span className="text-3xl font-bold text-brand-800">
-              {deal.discountPrice.toLocaleString()}
+              {discountPrice.toLocaleString()}
               <span className="text-base font-medium text-brand-600">원</span>
             </span>
-            <span className="text-lg text-brand-400 line-through">{deal.originalPrice.toLocaleString()}원</span>
+            <span className="text-lg text-brand-400 line-through">{originalPrice.toLocaleString()}원</span>
           </div>
 
           <div className="bg-brand-50 rounded-2xl p-4 mb-4">
@@ -291,8 +300,8 @@ const TimeDealDetail = () => {
           </div>
 
           <StockProgress
-            current={isUpcoming ? 0 : deal.totalStock - deal.stock}
-            total={deal.totalStock}
+            current={isUpcoming ? 0 : totalStock - remainingQuantity}
+            total={totalStock}
             hideCount={isUpcoming}
           />
         </div>
@@ -300,7 +309,7 @@ const TimeDealDetail = () => {
         <div className="bg-white rounded-2xl mt-4 p-6 max-w-3xl mx-auto shadow-sm">
           <h3 className="font-bold text-brand-800 mb-4">상품 정보</h3>
           <div className="text-sm text-brand-600 space-y-2">
-            {(deal.features || [
+            {(deal.product?.description ? [deal.product.description] : [
               '• 프리미엄 원료 사용',
               '• 수의사 추천 제품',
               '• 안전성 검증 완료',
@@ -333,8 +342,6 @@ const TimeDealDetail = () => {
       {/* 하단 구매 바 */}
       <div className="sticky bottom-0 bg-white border-t border-brand-200 z-50">
         <div className="container mx-auto px-4 py-4 max-w-3xl">
-
-          {/* 배송지 미등록 안내 배너 */}
           {showAddressBanner && (
             <div className="mb-3 p-3 bg-brand-50 border border-brand-200 rounded-2xl flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
@@ -373,11 +380,11 @@ const TimeDealDetail = () => {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <p className="text-xs text-brand-500">타임딜가</p>
-              <p className="text-2xl font-bold text-brand-800">{deal.discountPrice.toLocaleString()}원</p>
+              <p className="text-2xl font-bold text-brand-800">{discountPrice.toLocaleString()}원</p>
             </div>
             <button
               onClick={handlePurchaseClick}
-              disabled={isUpcoming || deal.stock === 0 || checkingStock}
+              disabled={isUpcoming || remainingQuantity === 0 || checkingStock}
               className={`px-8 py-4 rounded-2xl font-bold text-lg transition ${
                 !isUpcoming && canPurchase && !checkingStock
                   ? 'bg-brand-500 text-white hover:bg-brand-400 active:scale-[0.98]'
@@ -389,7 +396,7 @@ const TimeDealDetail = () => {
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   확인중
                 </span>
-              ) : deal.stock === 0 ? '품절'
+              ) : remainingQuantity === 0 ? '품절'
                 : isUpcoming ? (
                   <span className="flex flex-col items-center leading-tight">
                     <span className="text-xs font-normal opacity-70">구매까지</span>
@@ -405,6 +412,9 @@ const TimeDealDetail = () => {
       {showPayment && (
         <PaymentModal
           deal={deal}
+          productName={productName}
+          productImage={productImage}
+          discountPrice={discountPrice}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           onClose={() => setShowPayment(false)}
@@ -424,7 +434,12 @@ const TimeDealDetail = () => {
 };
 
 /* ─── 결제수단 선택 모달 ─── */
-export const PaymentModal = ({ deal, paymentMethod, setPaymentMethod, onClose, onNext }) => {
+export const PaymentModal = ({ deal, productName, productImage, discountPrice, paymentMethod, setPaymentMethod, onClose, onNext }) => {
+  // props로 안 넘어온 경우 deal에서 직접 추출 (하위 호환)
+  const name = productName ?? deal?.product?.name ?? '';
+  const image = productImage ?? deal?.product?.thumbnailUrl ?? '';
+  const price = discountPrice ?? Number(deal?.product?.salePrice ?? 0);
+
   const paymentMethods = [
     {
       id: 'bboshi',
@@ -468,6 +483,7 @@ export const PaymentModal = ({ deal, paymentMethod, setPaymentMethod, onClose, o
       iconBg: 'bg-gradient-to-br from-gray-600 to-gray-800',
     },
   ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -484,10 +500,10 @@ export const PaymentModal = ({ deal, paymentMethod, setPaymentMethod, onClose, o
           </div>
           <div className="bg-brand-50 rounded-2xl p-4 mb-6">
             <div className="flex gap-4">
-              <img src={deal.productImage} alt={deal.productName} className="w-16 h-16 object-cover rounded-xl" />
+              <img src={image} alt={name} className="w-16 h-16 object-cover rounded-xl" />
               <div className="flex-1">
-                <p className="font-medium text-brand-800 line-clamp-1 text-sm">{deal.productName}</p>
-                <p className="text-xl font-bold text-brand-800 mt-1">{deal.discountPrice.toLocaleString()}원</p>
+                <p className="font-medium text-brand-800 line-clamp-1 text-sm">{name}</p>
+                <p className="text-xl font-bold text-brand-800 mt-1">{price.toLocaleString()}원</p>
               </div>
             </div>
           </div>
@@ -524,6 +540,10 @@ export const PaymentModal = ({ deal, paymentMethod, setPaymentMethod, onClose, o
 
 /* ─── 처리 중 화면 ─── */
 const ProcessingScreen = ({ step, deal }) => {
+  const productName = deal?.product?.name ?? '';
+  const productImage = deal?.product?.thumbnailUrl ?? '';
+  const discountPrice = Number(deal?.product?.salePrice ?? 0);
+
   const steps = [
     { id: 1, label: '주문 생성', desc: '주문 정보를 등록하고 있어요', icon: '📝' },
     { id: 2, label: '재고 확보', desc: '상품 재고를 확인하고 있어요', icon: '📦' },
@@ -539,10 +559,10 @@ const ProcessingScreen = ({ step, deal }) => {
         </div>
         <div className="bg-brand-50 rounded-2xl p-4 mb-6">
           <div className="flex gap-3 items-center">
-            <img src={deal.productImage} alt={deal.productName} className="w-14 h-14 object-cover rounded-xl" />
+            <img src={productImage} alt={productName} className="w-14 h-14 object-cover rounded-xl" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-brand-800 line-clamp-1">{deal.productName}</p>
-              <p className="text-brand-500 font-bold">{deal.discountPrice.toLocaleString()}원</p>
+              <p className="text-sm font-medium text-brand-800 line-clamp-1">{productName}</p>
+              <p className="text-brand-500 font-bold">{discountPrice.toLocaleString()}원</p>
             </div>
           </div>
         </div>

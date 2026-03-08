@@ -85,7 +85,6 @@ const TimeDealList = () => {
     ));
   }, []);
 
-  // ✅ hooks를 early return 위에 선언
   const resolvedBannerDeals = React.useMemo(() => {
     const active = deals.filter(d => d.status === 'ACTIVE');
     if (active.length === 0) return [];
@@ -94,7 +93,6 @@ const TimeDealList = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deals.length]);
 
-  // 홍보 슬라이드 + 딜 슬라이드 합치기 (홍보가 항상 첫 번째)
   const PROMO_SLIDE = { id: 'promo', isPromo: true };
   const allBannerSlides = resolvedBannerDeals.length > 0
     ? [PROMO_SLIDE, ...resolvedBannerDeals]
@@ -179,7 +177,6 @@ const TimeDealList = () => {
             <div className="flex items-center gap-1">
               {user ? (
                 <>
-                  {/* 관리자 버튼 */}
                   {user.email === 'admin@test.com' && (
                     <Link to="/admin"
                       className="px-3 py-1.5 text-xs font-bold bg-brand-800 text-white rounded-full hover:bg-brand-700 transition mr-1"
@@ -260,16 +257,12 @@ const TimeDealList = () => {
                   >
                     {allBannerSlides.map((slide, idx) => (
                       slide.isPromo ? (
-                        /* ── 홍보 슬라이드 ── */
                         <div key="promo" className="relative w-full h-full flex-shrink-0 flex items-center px-10"
                           style={{ background: 'linear-gradient(135deg, #7c4a1e 0%, #c47a3a 40%, #e8a85a 70%, #d4813a 100%)' }}>
-                          {/* 배경 장식 */}
                           <div className="absolute inset-0 overflow-hidden pointer-events-none">
                             <div className="absolute -top-10 -right-10 w-64 h-64 rounded-full bg-white/5" />
                             <div className="absolute -bottom-16 -left-8 w-56 h-56 rounded-full bg-white/5" />
                           </div>
-
-                          {/* 우측 이모티콘 — 산발 배치 */}
                           <div className="absolute right-0 top-0 bottom-0 w-96 hidden sm:block pointer-events-none select-none">
                             <span className="absolute text-7xl" style={{ top: '12%', right: '30%' }}>🐶</span>
                             <span className="absolute text-6xl" style={{ bottom: '15%', right: '10%' }}>🐱</span>
@@ -278,8 +271,6 @@ const TimeDealList = () => {
                             <span className="absolute text-3xl" style={{ bottom: '8%', right: '48%' }}>⭐</span>
                             <span className="absolute text-3xl" style={{ top: '30%', right: '5%' }}>🦴</span>
                           </div>
-
-                          {/* 텍스트 */}
                           <div className="relative z-10" style={{ maxWidth: '55%' }}>
                             <p className="text-white/80 text-base font-medium mb-3">
                               프리미엄 반려용품을 특별한 가격으로
@@ -291,18 +282,17 @@ const TimeDealList = () => {
                           </div>
                         </div>
                       ) : (
-                        /* ── 딜 슬라이드 ── */
                         <div key={slide.id} className="relative w-full h-full flex-shrink-0">
-                          <img src={slide.productImage} alt={slide.productName}
+                          <img src={slide.product?.thumbnailUrl} alt={slide.product?.name}
                             className="w-full h-full object-cover object-center" />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
                           <div className="absolute bottom-16 left-0 right-0 px-6">
                             <p className="text-white font-bold text-3xl leading-tight truncate mb-2">
-                              {slide.productName.split('|')[0].trim()}
+                              {(slide.product?.name ?? '').split('|')[0].trim()}
                             </p>
-                            {slide.productName.split('|')[1] && (
+                            {(slide.product?.name ?? '').split('|')[1] && (
                               <p className="text-white/80 text-base font-medium truncate">
-                                {slide.productName.split('|')[1].trim()}
+                                {(slide.product?.name ?? '').split('|')[1].trim()}
                               </p>
                             )}
                           </div>
@@ -344,19 +334,17 @@ const TimeDealList = () => {
                 if (!urgentDeal) return null;
                 return (
                   <div className="hidden lg:flex flex-col w-52 flex-shrink-0 bg-white rounded-2xl shadow-sm overflow-hidden">
-                    {/* 상단: 이미지 — object-top으로 잘림 방지 */}
                     <div className="relative cursor-pointer" onClick={() => navigate(`/deal/${urgentDeal.id}`)}>
-                      <img src={urgentDeal.productImage} alt={urgentDeal.productName}
+                      <img src={urgentDeal.product?.thumbnailUrl} alt={urgentDeal.product?.name}
                         className="w-full h-36 object-cover object-top" />
                       <div className="absolute top-2 left-2">
                         <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">🔥 마감 임박</span>
                       </div>
                     </div>
-                    {/* 하단: 텍스트 + 타이머 + 버튼 */}
                     <div className="flex flex-col flex-1 p-4 justify-between">
                       <p className="text-sm text-brand-800 font-semibold leading-snug line-clamp-3 mb-3 cursor-pointer"
                         onClick={() => navigate(`/deal/${urgentDeal.id}`)}>
-                        {urgentDeal.productName.split('|')[0].trim()}
+                        {(urgentDeal.product?.name ?? '').split('|')[0].trim()}
                       </p>
                       <div>
                         <div className="bg-red-50 rounded-xl px-3 py-2.5 mb-3 text-center flex flex-col items-center">
@@ -390,7 +378,6 @@ const TimeDealList = () => {
                 </div>
                 <h2 className="text-xl font-bold text-brand-800">지금 진행중인 딜</h2>
               </div>
-              {/* 필터 드롭다운 */}
               <div className="relative">
                 <button
                   onClick={() => setFilterOpen(o => !o)}
@@ -430,7 +417,6 @@ const TimeDealList = () => {
                   key={`${authKey}-${deal.id}`}
                   deal={deal}
                   onWishChange={() => setAuthKey(k => k + 1)}
-                  // ✅ 만료 시 fetchDeals() 대신 로컬 상태만 업데이트
                   onDealExpire={() => handleDealEnd(deal.id)}
                 />
               ))}
@@ -450,7 +436,6 @@ const TimeDealList = () => {
                   key={`${authKey}-${deal.id}`}
                   deal={deal}
                   onWishChange={() => setAuthKey(k => k + 1)}
-                  // ✅ 시작 시간 만료 시 UPCOMING → ACTIVE로 이동
                   onDealExpire={() => handleDealStart(deal.id)}
                 />
               ))}
@@ -502,6 +487,7 @@ const TimeDealList = () => {
           </div>
         </div>
       </footer>
+
       {/* 마감 임박 딜 결제 플로우 */}
       {urgentPayment.processing && urgentPayment.deal && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center gap-6">
@@ -513,7 +499,7 @@ const TimeDealList = () => {
             <p className="font-bold text-brand-800 text-lg mb-1">
               {urgentPayment.processingStep === 1 ? '결제 처리 중...' : '재고 확인 중...'}
             </p>
-            <p className="text-brand-500 text-sm">{urgentPayment.deal.productName.split('|')[0].trim()}</p>
+            <p className="text-brand-500 text-sm">{(urgentPayment.deal.product?.name ?? '').split('|')[0].trim()}</p>
           </div>
         </div>
       )}
